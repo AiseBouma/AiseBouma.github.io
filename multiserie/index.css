@@ -1,0 +1,55 @@
+body
+{
+  padding: 50px;
+  border: 0px;
+  margin: 0px;
+  font-family: Verdana,sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+img
+{
+  width: 1000px;
+  border: 1px solid black;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}  
+
+a
+{
+  text-decoration: underline;
+}
+
+h1, h2, h3, h4, h5, h6
+{
+  font-family: "Segoe UI",Arial,sans-serif;
+  font-weight: 400;
+  margin: 10px 0;
+}
+
+h2
+{
+  font-size: 30px;
+}
+  
+h3
+{
+  font-size: 24px;
+}
+
+pre
+{
+  background: #f3f3f7;
+  border: 1px solid #dedee3;
+  padding: 11px;
+  line-height: 1.3em;
+  margin-bottom: 22px;
+  overflow: auto;
+}
+
+code, pre
+{
+  font-family: Consolas, Monaco, "Courier New", Courier, monospace;
+  color: #000;
+}
