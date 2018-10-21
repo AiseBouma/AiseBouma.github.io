@@ -1039,6 +1039,6 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
     return null;
   }
   
-  return chart;  
+  return chart; 
 }  
 
