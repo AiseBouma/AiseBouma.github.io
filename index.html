@@ -1,3 +1,1208 @@
 <html>
-hello
-</html>  
+  <head>
+    <link rel="stylesheet" type="text/css" href="lukisan.css">
+  </head>
+  <script src="jquery-3.3.1.min.js"></script>
+  <script src="papaparse.min.js"></script>
+  <script src="lukisan.js"></script>
+  <script language="javascript">
+  
+  const font_options = 
+  {
+    'Arial, Helvetica, sans-serif': 'Arial',
+    'Georgia, serif': 'Georgia', 
+    '"Palatino Linotype", "Book Antiqua", Palatino, serif': 'Palatino Linotype',
+    '"Times New Roman", Times, serif': 'Times New Roman',
+    '"Arial Black", Gadget, sans-serif': 'Arial Black',
+    '"Comic Sans MS", cursive, sans-serif': 'Comic Sans MS',
+    'Impact, Charcoal, sans-serif': 'Impact',
+    '"Lucida Sans Unicode", "Lucida Grande", sans-serif': 'Lucida Sans Unicode',
+    'Tahoma, Geneva, sans-serif': 'Tahoma',
+    '"Trebuchet MS", Helvetica, sans-serif': 'Trebuchet MS',
+    'Verdana, Geneva, sans-serif': 'Verdana',
+    '"Courier New", Courier, monospace': 'Courier New',
+    '"Lucida Console", Monaco, monospace': 'Lucida Console'
+  };
+
+  var data;
+  var i,j;
+  var minimum, maximum;
+  var start, end;
+  var svg;
+  var chart2;
+  var selected_series_color;
+  
+  $("document").ready(function()
+  {
+    // hide all settings
+    $("#chart_settings").toggle();
+    $("#title_settings").toggle();
+    $("#data_settings").toggle();
+    $("#axisl_title_settings").toggle();
+    $("#axisb_title_settings").toggle();
+    $("#legend_settings").toggle();
+    $("#axisl_settings").toggle();
+    $("#axisl_ticks_settings").toggle();
+    $("#axisl_tick_labels_settings").toggle();
+    $("#axisb_settings").toggle();
+    $("#axisb_ticks_settings").toggle();
+    $("#axisb_tick_labels_settings").toggle();
+    $("#series_settings").toggle();
+    $("#area_settings").toggle();
+    
+    $("#upload").change(function()
+    {
+      $('#upload').parse(
+      {
+				config:
+        {
+          header: false,
+		      dynamicTyping: true,
+		      skipEmptyLines: true,
+				  complete: function(results)
+          {
+            data = results.data;
+            chart2.set_attribute('data', results.data);
+            show_data_summary(results.data);
+          }
+			  }
+			});
+    });
+    
+    $("#upload_settings").change(function()
+    {    
+      let file = document.getElementById('upload_settings').files[0];
+      let reader = new FileReader();
+      reader.addEventListener("loadend", function()
+      {
+        let uploaded_chart_object = (jQuery.parseJSON(reader.result));
+        chart2 = Object.assign(chart2, uploaded_chart_object);
+        chart2.redraw();
+      });
+      reader.readAsBinaryString(file);
+    });
+    
+    $.each(font_options, function(val, text)
+    {
+      $('#title_font').append(new Option(text,val));
+      $('#axisl_title_font').append(new Option(text,val));
+      $('#axisb_title_font').append(new Option(text,val));
+      $('#legend_font').append(new Option(text,val));
+      $('#axisl_tick_labels_font').append(new Option(text,val));
+      $('#axisb_tick_labels_font').append(new Option(text,val));
+    });
+    
+    for (i = 0; i < 20; i++)
+    {
+      $("#series_colors_div").append("<span id='serie_color_span_" + i + "' class='color_select_span' onclick='select_serie_color(" + i + ")'>&#9724;</span>");
+    }
+    
+    // update the download link before the click is executed
+    $("#download").click(function()
+    {
+    console.log(JSON.stringify(chart2, filter_json, 2));
+      $(this).prop("href", encodeURI("data:application/octet-stream,"+JSON.stringify(chart2, filter_json, 2)));
+    });
+    
+    $("#chart_width_input").blur(function()
+    {
+      chart2.set_attribute('chart_width', Number(this.value));
+    });
+    
+    $("#chart_height_input").blur(function()
+    {
+      chart2.set_attribute('chart_height', Number(this.value));
+    });
+    
+    $("#chart_bg_color").change(function()
+    {
+      chart2.set_attribute('chart_background_color', this.value);
+    });
+    
+    $("#chart_right_inside_margin").change(function()
+    {
+      chart2.set_attribute('chart_right_inside_margin', Number(this.value));
+    });
+    
+    $("#title_text_input").blur(function()
+    {
+      chart2.set_attribute('title_text', this.value);
+    });
+
+    $("#title_position").change(function()
+    {
+      chart2.set_attribute('title_position', this.value);
+    });
+
+    $("#title_font").change(function()
+    {
+      chart2.set_attribute('title_font_family', this.value);
+    });
+
+    $("#title_font_size").blur(function()
+    {
+      chart2.set_attribute('title_font_size', Number(this.value));
+    });
+
+    $("#title_font_weight").change(function()
+    {
+      chart2.set_attribute('title_font_weight', this.value);
+    });
+
+    $("#title_font_color").change(function()
+    {
+      chart2.set_attribute('title_color', this.value);
+    });
+
+    $("#title_top_margin").blur(function()
+    {
+      chart2.set_attribute('title_top_margin', Number(this.value));
+    });
+
+    $("#title_horizontal_margin").blur(function()
+    {
+      chart2.set_attribute('title_horizontal_margin', Number(this.value));
+    });
+    
+    $("#axisl_title_text_input").blur(function()
+    {
+      chart2.set_attribute('axisl_title_text', this.value);
+    });
+
+    $("#axisl_title_position").change(function()
+    {
+      chart2.set_attribute('axisl_title_position', this.value);
+    });
+
+    $("#axisl_title_font").change(function()
+    {
+      chart2.set_attribute('axisl_title_font_family', this.value);
+    });
+
+    $("#axisl_title_font_size").blur(function()
+    {
+      chart2.set_attribute('axisl_title_font_size', Number(this.value));
+    });
+    
+    $("#axisl_title_font_weight").change(function()
+    {
+      chart2.set_attribute('axisl_title_font_weight', this.value);
+    });
+
+    $("#axisl_title_font_color").change(function()
+    {
+      chart2.set_attribute('axisl_title_color', this.value);
+    });
+
+    $("#axisl_title_left_margin").blur(function()
+    {
+      chart2.set_attribute('axisl_title_left_margin', Number(this.value));
+    });
+
+    $("#axisl_title_vertical_margin").blur(function()
+    {
+      chart2.set_attribute('axisl_title_vertical_margin', Number(this.value));
+    });
+
+    $("#axisb_title_text_input").blur(function()
+    {
+      chart2.set_attribute('axisb_title_text', this.value);
+    });
+
+    $("#axisb_title_position").change(function()
+    {
+      chart2.set_attribute('axisb_title_position', this.value);
+    });
+
+    $("#axisb_title_font").change(function()
+    {
+      chart2.set_attribute('axisb_title_font_family', this.value);
+    });
+
+    $("#axisb_title_font_size").blur(function()
+    {
+      chart2.set_attribute('axisb_title_font_size', Number(this.value));
+    });
+    
+    $("#axisb_title_font_weight").change(function()
+    {
+      chart2.set_attribute('axisb_title_font_weight', this.value);
+    });
+    
+    $("#axisb_title_font_color").change(function()
+    {
+      chart2.set_attribute('axisb_title_color', this.value);
+    });
+
+    $("#axisb_title_bottom_margin").blur(function()
+    {
+      chart2.set_attribute('axisb_title_bottom_margin', Number(this.value));
+    });
+
+    $("#axisb_title_horizontal_margin").blur(function()
+    {
+      chart2.set_attribute('axisb_title_horizontal_margin', Number(this.value));
+    });
+
+    $("#legend_position").change(function()
+    {
+      chart2.set_attribute('legend_position', this.value);
+    });
+
+    $("#legend_bg_color").change(function()
+    {
+      chart2.set_attribute('legend_bg_color', this.value);
+    });
+
+    $("#legend_vertical_margin").blur(function()
+    {
+      chart2.set_attribute('legend_vertical_margin', Number(this.value));
+    });
+
+    $("#legend_left_margin").blur(function()
+    {
+      chart2.set_attribute('legend_left_margin', this.value);
+    });
+
+    $("#legend_align").change(function()
+    {
+      chart2.set_attribute('legend_align', this.value);
+    });
+
+    $("#legend_line_length").blur(function()
+    {
+      chart2.set_attribute('legend_line_length', Number(this.value));
+    });
+
+    $("#legend_line_right_margin").blur(function()
+    {
+      chart2.set_attribute('legend_line_right_margin', Number(this.value));
+    });
+
+    $("#legend_vertical_inside_margin").blur(function()
+    {
+      chart2.set_attribute('legend_vertical_inside_margin', Number(this.value));
+    });
+
+    $("#legend_horizontal_inside_margin").blur(function()
+    {
+      chart2.set_attribute('legend_horizontal_inside_margin', Number(this.value));
+    });
+
+    $("#legend_font").change(function()
+    {
+      chart2.set_attribute('legend_font', this.value);
+    });
+
+    $("#legend_font_size").blur(function()
+    {
+      chart2.set_attribute('legend_font_size', Number(this.value));
+    });
+
+    $("#legend_font_color").change(function()
+    {
+      chart2.set_attribute('legend_font_color', this.value);
+    });
+
+    $("#axisl_top_margin").blur(function()
+    {
+      chart2.set_attribute('axisl_top_margin', Number(this.value));
+    });
+
+    $("#axisl_color").change(function()
+    {
+      chart2.set_attribute('axisl_color', this.value);
+    });
+
+    $("#axisl_thickness").blur(function()
+    {
+      chart2.set_attribute('axisl_thickness', Number(this.value));
+    });
+
+    $("#axisl_minimum").blur(function()
+    {
+      if (this.value == 'a')
+      {
+        chart2.set_attribute('axisl_minimum', this.value);
+      }
+      else
+      {
+        chart2.set_attribute('axisl_minimum', Number(this.value));
+      }  
+    });
+
+    $("#axisl_maximum").blur(function()
+    {
+      if (this.value == 'a')
+      {
+        chart2.set_attribute('axisl_maximum', this.value);
+      }
+      else
+      {
+        chart2.set_attribute('axisl_maximum', Number(this.value));
+      }  
+    });
+
+    $("#axisl_ticks_interval").blur(function()
+    {
+      if (this.value == 'a')
+      {
+        chart2.set_attribute('axisl_ticks_interval', this.value);
+      }
+      else
+      {
+        chart2.set_attribute('axisl_ticks_interval', Number(this.value));
+      }  
+    });
+
+    $("#axisl_ticks_color").change(function()
+    {
+      chart2.set_attribute('axisl_ticks_color', this.value);
+    });
+
+    $("#axisl_ticks_thickness").blur(function()
+    {
+      chart2.set_attribute('axisl_ticks_thickness', Number(this.value));
+    });
+
+    $("#axisl_ticks_length").blur(function()
+    {
+      chart2.set_attribute('axisl_ticks_length', Number(this.value));
+    });
+
+    $("#axisl_ticks_left_margin").blur(function()
+    {
+      chart2.set_attribute('axisl_ticks_left_margin', Number(this.value));
+    });
+
+    $("#axisl_ticks_position").change(function()
+    {
+      chart2.set_attribute('axisl_ticks_position', this.value);
+    });
+
+    $("#axisl_tick_labels_font").change(function()
+    {
+      chart2.set_attribute('axisl_tick_labels_font', this.value);
+    });
+
+    $("#axisl_tick_labels_font_size").blur(function()
+    {
+      chart2.set_attribute('axisl_tick_labels_font_size', Number(this.value));
+    });
+
+    $("#axisl_tick_labels_font_color").change(function()
+    {
+      chart2.set_attribute('axisl_tick_labels_font_color', this.value);
+    });
+
+    $("#axisl_tick_labels_position").change(function()
+    {
+      chart2.set_attribute('axisl_tick_labels_position', this.value);
+    });
+
+    $("#axisl_tick_labels_left_margin").blur(function()
+    {
+      chart2.set_attribute('axisl_tick_labels_left_margin', Number(this.value));
+    });
+
+    $("#axisb_color").change(function()
+    {
+      chart2.set_attribute('axisb_color', this.value);
+    });
+
+    $("#axisb_thickness").blur(function()
+    {
+      chart2.set_attribute('axisb_thickness', Number(this.value));
+    });
+
+    $("#axisb_minimum").blur(function()
+    {
+      if (this.value == 'a')
+      {
+        chart2.set_attribute('axisb_minimum', this.value);
+      }
+      else
+      {
+        chart2.set_attribute('axisb_minimum', Number(this.value));
+      }  
+    });
+
+    $("#axisb_maximum").blur(function()
+    {
+      if (this.value == 'a')
+      {
+        chart2.set_attribute('axisb_maximum', this.value);
+      }
+      else
+      {
+        chart2.set_attribute('axisb_maximum', Number(this.value));
+      }  
+    });
+
+    $("#axisb_ticks_interval").blur(function()
+    {
+      if (this.value == 'a')
+      {
+        chart2.set_attribute('axisb_ticks_interval', this.value);
+      }
+      else
+      {
+        chart2.set_attribute('axisb_ticks_interval', Number(this.value));
+      }  
+    });
+
+    $("#axisb_ticks_color").change(function()
+    {
+      chart2.set_attribute('axisb_ticks_color', this.value);
+    });
+
+    $("#axisb_ticks_thickness").blur(function()
+    {
+      chart2.set_attribute('axisb_ticks_thickness', Number(this.value));
+    });
+
+    $("#axisb_ticks_length").blur(function()
+    {
+      chart2.set_attribute('axisb_ticks_length', Number(this.value));
+    });
+
+    $("#axisb_ticks_bottom_margin").blur(function()
+    {
+      chart2.set_attribute('axisb_ticks_bottom_margin', Number(this.value));
+    });
+
+    $("#axisb_ticks_position").change(function()
+    {
+      chart2.set_attribute('axisb_ticks_position', this.value);
+    });
+
+    $("#axisb_tick_labels_font").change(function()
+    {
+      chart2.set_attribute('axisb_tick_labels_font', this.value);
+    });
+
+    $("#axisb_tick_labels_font_size").blur(function()
+    {
+      chart2.set_attribute('axisb_tick_labels_font_size', Number(this.value));
+    });
+
+    $("#axisb_tick_labels_font_color").change(function()
+    {
+      chart2.set_attribute('axisb_tick_labels_font_color', this.value);
+    });
+
+    $("#axisb_tick_labels_position").change(function()
+    {
+      chart2.set_attribute('axisb_tick_labels_position', this.value);
+    });
+
+    $("#axisb_tick_labels_bottom_margin").blur(function()
+    {
+      chart2.set_attribute('axisb_tick_labels_bottom_margin', Number(this.value));
+    });
+
+    $("#series_color").change(function()
+    {
+      $("#serie_color_span_" + selected_series_color).css('color', this.value);
+      let series_colors_str = "";
+      for (i = 0; i < 20; i++)
+      {
+        series_colors_str = series_colors_str + rgb2hex($("#serie_color_span_" + i).css('color')) + ";";
+      }
+      chart2.set_attribute('series_colors', series_colors_str.slice(0, -1)); // remove last ;
+      console.log(chart2.series_colors);
+    });
+
+    $("#series_line_thickness").blur(function()
+    {
+      chart2.set_attribute('series_line_thickness', Number(this.value));
+    });
+
+    $("#series_line_smoothing").blur(function()
+    {
+      chart2.set_attribute('series_line_smoothing', Number(this.value));
+    });
+
+    $("#series_point_size").blur(function()
+    {
+      chart2.set_attribute('series_point_size', Number(this.value));
+    });
+
+    $("#area_bg_color").change(function()
+    {
+      chart2.set_attribute('area_bg_color', this.value);
+    });
+
+    $("#support_line_thickness").blur(function()
+    {
+      chart2.set_attribute('support_line_thickness', Number(this.value));
+    });
+
+    $("#support_line_thickness_units").change(function()
+    {
+      chart2.set_attribute('support_line_thickness_units', this.value);
+    });
+
+    $("#support_line_color").change(function()
+    {
+      chart2.set_attribute('support_line_color', this.value);
+    });
+
+    chart2 = createMultiseriesLineChart(document.getElementById('chart2'));
+    update_web_interface();
+    //chart2.redraw();
+    Papa.parse('gii.csv', 
+    {
+      download: true,
+      header: false,
+		  dynamicTyping: true,
+		  skipEmptyLines: true,
+			complete: function(results)
+      {
+        chart2.set_attribute('data', results.data);
+        show_data_summary(results.data);
+      }
+		});
+    //chart2.set_attribute('data', this.value);
+    // createMultiseriesLineChart(document.getElementById('chart2'),
+    //                           'chart.json',    
+    //                           function(chart_fromfile)
+    //                           {
+    //                             chart2 = chart_fromfile;
+    //                             update_web_interface();
+    //                             chart2.redraw();
+    //                           });
+ 
+  });
+  
+  function toggle_arrow(arrow_id)
+  {
+    if ($("#" + arrow_id).html().charCodeAt(0) == 9660)
+    {
+      $("#" + arrow_id).html("&#9650;");
+    }
+    else
+    {
+      $("#" + arrow_id).html("&#9660;");
+    }
+  }  
+  
+  function rgb2hex(rgb)
+  {
+    rgb = rgb.match(/^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i);
+    return (rgb && rgb.length === 4) ? "#" +
+            ("0" + parseInt(rgb[1],10).toString(16)).slice(-2) +
+            ("0" + parseInt(rgb[2],10).toString(16)).slice(-2) +
+            ("0" + parseInt(rgb[3],10).toString(16)).slice(-2) : '';
+  }
+  
+  function select_serie_color(index)
+  {
+    let current_color = $("#serie_color_span_" + index).css('color');
+    $("#series_color").val(rgb2hex(current_color)).click();
+    selected_series_color = index;
+  }
+  
+
+  
+  function filter_json(key, value)
+  {
+    if ((typeof value === 'object') && (key != "")) // we do want the main object
+    {
+      return undefined;
+    }
+    return value;
+  }
+  
+  function update_web_interface()
+  {
+    $("#chart_width_input").val(chart2.chart_width);
+    $("#chart_height_input").val(chart2.chart_height);
+    $("#chart_bg_color").val(chart2.chart_background_color);
+    $("#chart_right_inside_margin").val(chart2.chart_right_inside_margin);
+    $("#title_text_input").val(chart2.title_text);
+    $("#title_position").val(chart2.title_position);
+    $("#title_font").val(chart2.title_font_family);
+    $("#title_font_size").val(chart2.title_font_size);
+    $("#title_font_weight").val(chart2.title_font_weight);    
+    $("#title_font_color").val(chart2.title_color);
+    $("#title_top_margin").val(chart2.title_top_margin);
+    $("#title_horizontal_margin").val(chart2.title_horizontal_margin);
+    $("#axisl_title_text_input").val(chart2.axisl_title_text);
+    $("#axisl_title_position").val(chart2.axisl_title_position);
+    $("#axisl_title_font").val(chart2.axisl_title_font_family);
+    $("#axisl_title_font_size").val(chart2.axisl_title_font_size);
+    $("#axisl_title_font_weight").val(chart2.axisl_title_font_weight);
+    $("#axisl_title_font_color").val(chart2.axisl_title_color);
+    $("#axisl_title_left_margin").val(chart2.axisl_title_left_margin);
+    $("#axisl_title_vertical_margin").val(chart2.axisl_title_vertical_margin);
+    $("#axisb_title_text_input").val(chart2.axisb_title_text);
+    $("#axisb_title_position").val(chart2.axisb_title_position);
+    $("#axisb_title_font").val(chart2.axisb_title_font_family);
+    $("#axisb_title_font_size").val(chart2.axisb_title_font_size);
+    $("#axisb_title_font_weight").val(chart2.axisb_title_font_weight);
+    $("#axisb_title_font_color").val(chart2.axisb_title_color);
+    $("#axisb_title_bottom_margin").val(chart2.axisb_title_bottom_margin);
+    $("#axisb_title_horizonal_margin").val(chart2.axisb_title_horizontal_margin);
+    $("#legend_position").val(chart2.legend_position);
+    $("#legend_bg_color").val(chart2.legend_bg_color);
+    $("#legend_vertical_margin").val(chart2.legend_vertical_margin);
+    $("#legend_left_margin").val(chart2.legend_left_margin);
+    $("#legend_align").val(chart2.legend_align);
+    $("#legend_line_length").val(chart2.legend_line_length);
+    $("#legend_line_right_margin").val(chart2.legend_line_right_margin);
+    $("#legend_vertical_inside_margin").val(chart2.legend_vertical_inside_margin);
+    $("#legend_horizontal_inside_margin").val(chart2.legend_horizontal_inside_margin);
+    $("#legend_font").val(chart2.legend_font);
+    $("#legend_font_size").val(chart2.legend_font_size);
+    $("#legend_font_color").val(chart2.legend_font_color);
+    $("#axisl_top_margin").val(chart2.axisl_top_margin);
+    $("#axisl_color").val(chart2.axisl_color);
+    $("#axisl_thickness").val(chart2.axisl_thickness);
+    $("#axisl_minimum").val(chart2.axisl_minimum);
+    $("#axisl_maximum").val(chart2.axisl_maximum);
+    $("#axisl_ticks_interval").val(chart2.axisl_ticks_interval);    
+    $("#axisl_ticks_color").val(chart2.axisl_ticks_color);    
+    $("#axisl_ticks_thickness").val(chart2.axisl_ticks_thickness);    
+    $("#axisl_ticks_length").val(chart2.axisl_ticks_length);    
+    $("#axisl_ticks_left_margin").val(chart2.axisl_ticks_left_margin);    
+    $("#axisl_ticks_position").val(chart2.axisl_ticks_position);    
+    $("#axisl_tick_labels_font").val(chart2.axisl_tick_labels_font);    
+    $("#axisl_tick_labels_font_size").val(chart2.axisl_tick_labels_font_size);    
+    $("#axisl_tick_labels_font_color").val(chart2.axisl_tick_labels_font_color);    
+    $("#axisl_tick_labels_position").val(chart2.axisl_tick_labels_position);    
+    $("#axisl_tick_labels_left_margin").val(chart2.axisl_tick_labels_left_margin);    
+    $("#axisb_color").val(chart2.axisb_color);
+    $("#axisb_thickness").val(chart2.axisb_thickness);
+    $("#axisb_minimum").val(chart2.axisb_minimum);
+    $("#axisb_maximum").val(chart2.axisb_maximum);
+    $("#axisb_ticks_interval").val(chart2.axisb_ticks_interval);    
+    $("#axisb_ticks_color").val(chart2.axisb_ticks_color);    
+    $("#axisb_ticks_thickness").val(chart2.axisb_ticks_thickness);    
+    $("#axisb_ticks_length").val(chart2.axisb_ticks_length);    
+    $("#axisb_ticks_bottom_margin").val(chart2.axisb_ticks_bottom_margin);    
+    $("#axisb_ticks_position").val(chart2.axisb_ticks_position);    
+    $("#axisb_tick_labels_font").val(chart2.axisb_tick_labels_font);    
+    $("#axisb_tick_labels_font_size").val(chart2.axisb_tick_labels_font_size);    
+    $("#axisb_tick_labels_font_color").val(chart2.axisb_tick_labels_font_color);    
+    $("#axisb_tick_labels_position").val(chart2.axisb_tick_labels_position);    
+    $("#axisb_tick_labels_bottom_margin").val(chart2.axisb_tick_labels_bottom_margin);
+
+    let series_colors = chart2.series_colors.split(';');
+    for (i = 0; i < series_colors.length; i++)
+    {
+      $("#serie_color_span_" + i).css('color', series_colors[i]);
+    }    
+    $("#series_line_thickness").val(chart2.series_line_thickness);
+    $("#series_line_smoothing").val(chart2.series_line_smoothing);
+    $("#series_point_size").val(chart2.series_point_size);
+    $("#area_bg_color").val(chart2.area_bg_color);
+    $("#support_line_thickness").val(chart2.support_line_thickness);
+    $("#support_line_thickness_units").val(chart2.support_line_thickness_units);
+    $("#support_line_color").val(chart2.support_line_color);
+  }  
+  
+  function show_data_summary(data)
+  {
+    let summary = "Number of series: <i>" + data[0].length;
+    summary = summary + "</i><br>Number of points: <i>" + data.length;
+    summary = summary + "</i><br>Series: <i>";
+    for (var i = 1; i < data[0].length; i++)
+    {
+      summary = summary + data[0][i] + "; ";
+    }
+    summary = summary + "</i><br>Example: <i>";
+    for (var i = 0; i < data[1].length; i++)
+    {
+      summary = summary + data[1][i] + "; ";
+    }    
+    summary = summary + "</i>";
+    $("#data_summary").html(summary);
+  }
+  
+  </script>
+  <body>
+    <div id='maindiv'>
+      <div id='mainleft'>
+        <div id='title_div'>Multiserie chart settings</div>
+        <div id='graphparameters'>        
+          <p id='chart_settings_title' class='graphsettings_titel' onclick='$("#chart_settings").toggle();toggle_arrow("chart_settings_arrow");'>Chart<span id="chart_settings_arrow" class='arrow'>&#9660;</span></p>
+          <div id='chart_settings' class='graphsettings'>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Width:</div><div class='graphsettings_cell'><input id='chart_width_input' class='numeric_input' value=1000></div>
+            </div>  
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Height:</div><div class='graphsettings_cell'><input id='chart_height_input' class='numeric_input' value=600></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Background color:</div><div class='graphsettings_cell'><input type='color' id='chart_bg_color' value='#ffffff'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Right inside margin:</div><div class='graphsettings_cell'><input id='chart_right_inside_margin' class='numeric_input' value=5></div>
+            </div>
+          </div>
+          
+          <p id='title_settings_title' class='graphsettings_titel' onclick='$("#title_settings").toggle();toggle_arrow("title_settings_arrow");'>Title<span id="title_settings_arrow" class='arrow'>&#9660;</span></p>
+          <div id='title_settings' class='graphsettings'>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Text:</div><div class='graphsettings_cell'><input id='title_text_input' value=""></div>
+            </div>  
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Font:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='title_font'>
+               </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Font size:</div><div class='graphsettings_cell'><input id='title_font_size' class='numeric_input' value=20></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Font weight:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='title_font_weight'>
+                  <option value=0 selected>Normal</option>
+                  <option value=1>Bold</option>
+                </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Font color:</div><div class='graphsettings_cell'><input type='color' id='title_font_color' value='#000000'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Position:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='title_position'>
+                  <option value='start'>Left</option> 
+                  <option value='middle' selected>Center</option>
+                  <option value='end'>Right</option>
+                </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Top margin:</div><div class='graphsettings_cell'><input id='title_top_margin' class='numeric_input' value=3></div>
+            </div>  
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Horizontal margin:</div><div class='graphsettings_cell'><input id='title_horizontal_margin' class='numeric_input' value=3></div>
+            </div>
+          </div>
+          
+          <p id='data_settings_title' class='graphsettings_titel' onclick='$("#data_settings").toggle();toggle_arrow("data_settings_arrow");'>Data<span id="data_settings_arrow" class='arrow'>&#9660;</span></p>
+          <div id='data_settings' class='graphsettings'>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'><input type="file" id="upload"></div>
+            </div>  
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                <div id='data_summary'>?
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <p id='legend_settings_title' class='graphsettings_titel' onclick='$("#legend_settings").toggle();toggle_arrow("legend_settings_arrow");'>Legend<span id="legend_settings_arrow" class='arrow'>&#9660;</span></p>
+          <div id='legend_settings' class='graphsettings'>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Position:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='legend_position'>
+                  <option value='top'>Top</option> 
+                  <option value='bottom'>Bottom</option>
+                </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Background color:</div><div class='graphsettings_cell'><input type='color' id='legend_bg_color' value='#ffffff'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Vertical margin:</div><div class='graphsettings_cell'><input id='legend_vertical_margin' class='numeric_input' value=10></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Left margin (a = automatic):</div><div class='graphsettings_cell'><input id='legend_left_margin' class='numeric_input' value='a'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Align:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='legend_align'>
+                  <option value='left'>Left</option> 
+                  <option value='center' selected>Middle</option>
+                  <option value='right'>Right</option>
+                </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Legend line length:</div><div class='graphsettings_cell'><input id='legend_line_length' class='numeric_input' value=25></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Legend line right margin:</div><div class='graphsettings_cell'><input id='legend_line_right_margin' class='numeric_input' value=5></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Vertical inside margin:</div><div class='graphsettings_cell'><input id='legend_vertical_inside_margin' class='numeric_input' value=15></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Horizontal inside margin:</div><div class='graphsettings_cell'><input id='legend_horizontal_inside_margin' class='numeric_input' value=15></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Font:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='legend_font'>
+                </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Font size:</div><div class='graphsettings_cell'><input id='legend_font_size' class='numeric_input' value=14></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Font color:</div><div class='graphsettings_cell'><input type='color' id='legend_font_color' value='#000000'></div>
+            </div>
+          </div>
+          
+          <p id='axisl_title_settings_title' class='graphsettings_titel' onclick='$("#axisl_title_settings").toggle();toggle_arrow("axisl_title_settings_arrow");'>Left Axis Title<span id="axisl_title_settings_arrow" class='arrow'>&#9660;</span></p>
+          <div id='axisl_title_settings' class='graphsettings'>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Text:</div><div class='graphsettings_cell'><input id='axisl_title_text_input' value=""></div>
+            </div>  
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Font:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='axisl_title_font'>
+               </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Font size:</div><div class='graphsettings_cell'><input id='axisl_title_font_size' class='numeric_input' value=14></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Font weight:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='axisl_title_font_weight'>
+                  <option value=0 selected>Normal</option>
+                  <option value=1>Bold</option>
+                </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Font color:</div><div class='graphsettings_cell'><input type='color' id='axisl_title_font_color' value='#000000'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Position:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='axisl_title_position'>
+                  <option value='end'>Top</option> 
+                  <option value='middle' selected>Middle</option>
+                  <option value='start'>Bottom</option>
+                </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Left margin:</div><div class='graphsettings_cell'><input id='axisl_title_left_margin' class='numeric_input' value=3></div>
+            </div>  
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Vertical margin:</div><div class='graphsettings_cell'><input id='axisl_title_vertical_margin' class='numeric_input' value=3></div>
+            </div>
+          </div>
+          
+          <p id='axisl_settings_title' class='graphsettings_titel' onclick='$("#axisl_settings").toggle();toggle_arrow("axisl_settings_arrow");'>Left Axis<span id="axisl_settings_arrow" class='arrow'>&#9660;</span></p>
+          <div id='axisl_settings' class='graphsettings'>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Top margin:</div><div class='graphsettings_cell'><input id='axisl_top_margin' class='numeric_input' value=5></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Color:</div><div class='graphsettings_cell'><input type='color' id='axisl_color' value='#000000'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Thickness:</div><div class='graphsettings_cell'><input id='axisl_thickness' class='numeric_input' value=1></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Minimum (a = automatic):</div><div class='graphsettings_cell'><input id='axisl_minimum' class='numeric_input' value='a'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Maximum (a = automatic):</div><div class='graphsettings_cell'><input id='axisl_maximum' class='numeric_input' value='a'></div>
+            </div>
+          </div>          
+  
+          <p id='axisl_ticks_settings_title' class='graphsettings_titel' onclick='$("#axisl_ticks_settings").toggle();toggle_arrow("axisl_ticks_settings_arrow");'>Left Axis Ticks<span id="axisl_ticks_settings_arrow" class='arrow'>&#9660;</span></p>
+          <div id='axisl_ticks_settings' class='graphsettings'>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Interval (a = automatic):</div><div class='graphsettings_cell'><input id='axisl_ticks_interval' class='numeric_input' value='a'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Color:</div><div class='graphsettings_cell'><input type='color' id='axisl_ticks_color' value='#000000'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Thickness:</div><div class='graphsettings_cell'><input id='axisl_ticks_thickness' class='numeric_input' value=1></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Length:</div><div class='graphsettings_cell'><input id='axisl_ticks_length' class='numeric_input' value=5></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Left margin:</div><div class='graphsettings_cell'><input id='axisl_ticks_left_margin' class='numeric_input' value=5></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Position:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='axisl_ticks_position'>
+                  <option value='left' selected>Left</option> 
+                  <option value='center'>Center</option>
+                  <option value='right'>Right</option>
+                </select>
+              </div>
+            </div>
+          </div>   
+          
+          <p id='axisl_tick_labels_settings_title' class='graphsettings_titel' onclick='$("#axisl_tick_labels_settings").toggle();toggle_arrow("axisl_tick_labels_settings_arrow");'>Left Axis Tick Labels<span id="axisl_tick_labels_settings_arrow" class='arrow'>&#9660;</span></p>
+          <div id='axisl_tick_labels_settings' class='graphsettings'>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Font:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='axisl_tick_labels_font'>
+               </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Font size:</div><div class='graphsettings_cell'><input id='axisl_tick_labels_font_size' class='numeric_input' value=14></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Font color:</div><div class='graphsettings_cell'><input type='color' id='axisl_tick_labels_font_color' value='#000000'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Position:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='axisl_tick_labels_position'>
+                  <option value='start'>Left</option> 
+                  <option value='middle'>Middle</option>
+                  <option value='end' selected>Right</option>
+                </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Left margin:</div><div class='graphsettings_cell'><input id='axisl_tick_labels_left_margin' class='numeric_input' value=15></div>
+            </div>  
+          </div>
+  
+          <p id='axisb_title_settings_title' class='graphsettings_titel' onclick='$("#axisb_title_settings").toggle();toggle_arrow("axisb_title_settings_arrow");'>Bottom Axis Title<span id="axisb_title_settings_arrow" class='arrow'>&#9660;</span></p>
+          <div id='axisb_title_settings' class='graphsettings'>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Text:</div><div class='graphsettings_cell'><input id='axisb_title_text_input' value=""></div>
+            </div>  
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Font:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='axisb_title_font'>
+               </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Font size:</div><div class='graphsettings_cell'><input id='axisb_title_font_size' class='numeric_input' value=14></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Font weight:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='axisb_title_font_weight'>
+                  <option value=0 selected>Normal</option>
+                  <option value=1>Bold</option>
+                </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Font color:</div><div class='graphsettings_cell'><input type='color' id='axisb_title_font_color' value='#000000'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Position:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='axisb_title_position'>
+                  <option value='start'>Left</option> 
+                  <option value='middle' selected>Middle</option>
+                  <option value='end'>Right</option>
+                </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Bottom margin:</div><div class='graphsettings_cell'><input id='axisb_title_bottom_margin' class='numeric_input' value=3></div>
+            </div>  
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Horizontal margin:</div><div class='graphsettings_cell'><input id='axisb_title_horizontal_margin' class='numeric_input' value=3></div>
+            </div>
+          </div>
+          
+          <p id='axisb_settings_title' class='graphsettings_titel' onclick='$("#axisb_settings").toggle();toggle_arrow("axisb_settings_arrow");'>Bottom Axis<span id="axisb_settings_arrow" class='arrow'>&#9660;</span></p>
+          <div id='axisb_settings' class='graphsettings'>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Color:</div><div class='graphsettings_cell'><input type='color' id='axisb_color' value='#000000'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Thickness:</div><div class='graphsettings_cell'><input id='axisb_thickness' class='numeric_input' value=1></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Minimum (a = automatic):</div><div class='graphsettings_cell'><input id='axisb_minimum' class='numeric_input' value='a'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Maximum (a = automatic):</div><div class='graphsettings_cell'><input id='axisb_maximum' class='numeric_input' value='a'></div>
+            </div>
+          </div>          
+  
+          <p id='axisb_ticks_settings_title' class='graphsettings_titel' onclick='$("#axisb_ticks_settings").toggle();toggle_arrow("axisb_ticks_settings_arrow");'>Bottom Axis Ticks<span id="axisb_ticks_settings_arrow" class='arrow'>&#9660;</span></p>
+          <div id='axisb_ticks_settings' class='graphsettings'>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Interval (a = automatic):</div><div class='graphsettings_cell'><input id='axisb_ticks_interval' class='numeric_input' value='a'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Color:</div><div class='graphsettings_cell'><input type='color' id='axisb_ticks_color' value='#000000'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Thickness:</div><div class='graphsettings_cell'><input id='axisb_ticks_thickness' class='numeric_input' value=1></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Length:</div><div class='graphsettings_cell'><input id='axisb_ticks_length' class='numeric_input' value=5></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Left margin:</div><div class='graphsettings_cell'><input id='axisb_ticks_bottom_margin' class='numeric_input' value=5></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Position:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='axisb_ticks_position'>
+                  <option value='top'>Top</option> 
+                  <option value='center'>Center</option>
+                  <option value='bottom' selected>Bottom</option>
+                </select>
+              </div>
+            </div>
+          </div>   
+          
+          <p id='axisb_tick_labels_settings_title' class='graphsettings_titel' onclick='$("#axisb_tick_labels_settings").toggle();toggle_arrow("axisb_tick_labels_settings_arrow");'>Bottom Axis Tick Labels<span id="axisb_tick_labels_settings_arrow" class='arrow'>&#9660;</span></p>
+          <div id='axisb_tick_labels_settings' class='graphsettings'>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Font:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='axisb_tick_labels_font'>
+               </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Font size:</div><div class='graphsettings_cell'><input id='axisb_tick_labels_font_size' class='numeric_input' value=14></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Font color:</div><div class='graphsettings_cell'><input type='color' id='axisb_tick_labels_font_color' value='#000000'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Position:
+              </div>
+              <div class='graphsettings_cell'>
+                <select id='axisb_tick_labels_position'>
+                  <option value='start'>Left</option> 
+                  <option value='middle' selected>Middle</option>
+                  <option value='end'>Right</option>
+                </select>
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Bottom margin:</div><div class='graphsettings_cell'><input id='axisb_tick_labels_bottom_margin' class='numeric_input' value=15></div>
+            </div>  
+          </div>
+  
+          <p id='series_settings_title' class='graphsettings_titel' onclick='$("#series_settings").toggle();toggle_arrow("series_settings_arrow");'>Series<span id="series_settings_arrow" class='arrow'>&#9660;</span></p>
+          <div id='series_settings' class='graphsettings'>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>
+                Colors:
+              </div>
+              <div class='graphsettings_cell'>
+                
+              </div>
+            </div>
+            
+            <div class='graphsettings_row'>
+              <div id='series_colors_div'>
+                
+              </div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Selected color:</div><div class='graphsettings_cell'><input type='color' id='series_color' value='#ffffff'></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Thickness:</div><div class='graphsettings_cell'><input id='series_line_thickness' class='numeric_input' value=2></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Smoothing (0 for none):</div><div class='graphsettings_cell'><input id='series_line_smoothing' class='numeric_input' value=0.2></div>
+            </div>
+            <div class='graphsettings_row'>
+              <div class='graphsettings_cell'>Point size (0 for none):</div><div class='graphsettings_cell'><input id='series_point_size' class='numeric_input' value=0></div>
+            </div>  
+          </div>
+        </div>
+ 
+        <p id='area_settings_title' class='graphsettings_titel' onclick='$("#area_settings").toggle();toggle_arrow("area_settings_arrow");'>Graph Area<span id="area_settings_arrow" class='arrow'>&#9660;</span></p>
+        <div id='area_settings' class='graphsettings'>
+          <div class='graphsettings_row'>
+            <div class='graphsettings_cell'>Background color:</div><div class='graphsettings_cell'><input type='color' id='area_bg_color' value='#ffffff'></div>
+          </div>
+          <div class='graphsettings_row'>
+            <div class='graphsettings_cell'>Support lines thickness (0 = none):</div><div class='graphsettings_cell'><input id='support_line_thickness' class='numeric_input' value=0></div>
+          </div>
+          <div class='graphsettings_row'>
+            <div class='graphsettings_cell'>
+              Thickness in:
+            </div>
+            <div class='graphsettings_cell'>
+              <select id='support_line_thickness_units'>
+                <option value='pixels' selected>Pixels</option>
+                <option value='ticks'>Ticks</option>
+              </select>
+            </div>
+          </div>
+          <div class='graphsettings_row'>
+            <div class='graphsettings_cell'>Line color:</div><div class='graphsettings_cell'><input type='color' id='support_line_color' value='#000000'></div>
+          </div>
+        </div>
+        <div id='upload_div'>
+          Upload chart settings<br>
+          <input type="file" id="upload_settings">
+        </div>
+        <div id='download_div'>
+          <a id='download' download="chart.json" href="">Download chart settings file</a>
+          
+        </div>
+      </div>  
+      <div id='mainright'>
+        <svg id='chart2'></svg>
+      </div>
+    </div>  
+    
+  </body>  
+</html>

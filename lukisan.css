@@ -1,0 +1,136 @@
+* 
+{
+  box-sizing: border-box;
+}
+
+html, body
+{
+  height: 100%;
+  padding: 0px;
+  border: 0px;
+  margin: 0px;
+}
+
+#maindiv
+{
+  display: flex;
+  height: 100%;
+}
+
+#mainleft
+{
+  width: 400px;
+  height: 100%;
+  overflow: auto;
+  flex: 0 0 auto;
+}
+
+#mainright
+{
+  flex-grow: 1;
+  background-color: #666666;
+}
+
+#title_div
+{
+  padding-top: 20px;
+  margin-left: 20px;
+  font-size: 20px;
+  font-weight: bold;
+}  
+
+.graphsettings_titel
+{
+  margin-left: 20px;
+  margin-top: 10px;
+  margin-bottom: 0px;
+  cursor: pointer;
+}  
+
+.graphsettings
+{
+  margin-left: 20px;
+  margin-top: 5px;
+  margin-right: 20px;
+  background-color: #cccccc;
+  padding: 5x;
+  display: table;
+  width: 360px;
+  border-collapse:collapse;
+}
+
+#chart
+{
+  width: 800px;
+  height: 500px;
+}  
+
+#chart2
+{
+  margin-top: 50px;
+  margin-left: 50px;
+}  
+
+.chart_settings_label
+{
+  width: 120px;
+}  
+
+.graphsettings_row
+{
+  display: table-row;
+}
+
+.graphsettings_cell
+{
+  display: table-cell;
+  padding: 5px;
+}
+
+.numeric_input
+{
+  width: 60px;
+  text-align: right;
+}  
+
+#title_text_input, #axisl_title_text_input, #axisb_title_text_input
+{
+  width: 200px;
+}  
+
+.arrow
+{
+  font-size: 12px;
+  margin-left: 5px;
+} 
+
+#data_summary
+{
+  width: 350px;
+  background-color: #ffffff;
+  padding: 3px;
+  
+} 
+
+#series_colors_div
+{
+  margin-left: 5px;
+}  
+
+.color_select_span
+{
+  cursor: pointer;
+}
+
+#download_div
+{
+  margin-left: 20px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}  
+
+#upload_div
+{
+  margin-left: 20px;
+  padding-top: 20px;
+}
