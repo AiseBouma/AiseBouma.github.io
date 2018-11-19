@@ -88,6 +88,7 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
   // create object with default values
   let chart = 
   {
+    debug: false,
     svg: svg,
     svgns: svgns,
     data: null,
@@ -151,6 +152,7 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
     axisl_tick_labels_position: 'end',
     axisl_tick_labels_left_margin: 15,
     axisb_color: '#000000',
+    axisb_data_type: 'number',
     axisb_thickness: 1,
     axisb_minimum: 'a',
     axisb_maximum: 'a',
@@ -158,8 +160,11 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
     axisb_ticks_color: '#000000',
     axisb_ticks_thickness: 1,
     axisb_ticks_length: 5,
+    axisb_ticks_units: 'y',
     axisb_ticks_bottom_margin: 5,
     axisb_ticks_position: 'bottom',
+    axisb_tick_labels_format: '',
+    axisb_tick_labels_locale: 'en',
     axisb_tick_labels_font: 'Arial, Helvetica, sans-serif',
     axisb_tick_labels_font_size: 14,
     axisb_tick_labels_font_color: '#000000',
@@ -182,6 +187,8 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
   
     redraw()
     {
+      this.log("method redraw called");
+      // remove previous graph, if any
       while(this.svg.childNodes.length > 0)
       {  
         this.svg.removeChild(svg.firstChild);
@@ -292,6 +299,94 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
 
       if (this.data)
       {  
+        this.log("process data");
+        // unformat the data
+        this.calculated.data = [];
+        for (i = 0; i < this.data.length; i++)
+        {
+          this.calculated.data[i] = [];
+          for (j = 0; j < this.data[i].length; j++)
+          {
+            if ((i > 0) && (j == 0) && (this.axisb_data_type == 'datetime'))
+            {
+              let dt = moment(this.data[i][j], this.data[0][0]);
+              if (!dt.isValid())
+              {  
+                let dt = moment(this.data[i][j]);
+                if (!dt.isValid())
+                {  
+                  this.calculated.data[i][j] = null;
+                }
+                else
+                {
+                  this.calculated.data[i][j] = Number(dt.format('x'));
+                }
+              }
+              else
+              {
+                this.calculated.data[i][j] = Number(dt.format('x'));
+              }                
+            }
+            else
+            {
+              this.calculated.data[i][j] = this.data[i][j];
+            }              
+          }
+        }
+
+        this.log("determine mins and maxs");
+        // first determine bottom axis start and end
+        if (this.axisb_minimum != 'a')
+        {
+          this.calculated.start = this.axisb_minimum;
+        }
+        else
+        {          
+          this.calculated.start = null;
+          for (i = 1; i < this.calculated.data.length; i++)
+          {
+            let row = this.calculated.data[i];
+            if (this.calculated.start === null)
+            {
+              this.calculated.start = row[0];
+            }        
+            else
+            {
+              this.calculated.start = Math.min(this.calculated.start, row[0]);
+            }
+          }
+        }  
+
+        if (this.axisb_maximum != 'a')
+        {
+          this.calculated.end = this.axisb_maximum;
+        }
+        else
+        {        
+          this.calculated.end = null;    
+          for (i = 1; i < this.calculated.data.length; i++)
+          {
+            let row = this.calculated.data[i];
+            if (this.calculated.end === null)
+            {
+              this.calculated.end = row[0];
+            }        
+            else
+            {
+              this.calculated.end = Math.max(this.calculated.end, row[0]);          
+            }
+          }  
+        } 
+        
+        if (this.calculated.end < this.calculated.start)
+        {
+          let temp = this.calculated.end;
+          this.calculated.end = this.calculated.start;
+          this.calculated.start = temp;
+        }          
+        
+        // determine left axis minimum and maximum
+        // in case of automatic only take into account points that are within the bottom axis range
         if (this.axisl_minimum != 'a')
         {
           this.calculated.minimum = this.axisl_minimum;
@@ -301,20 +396,23 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
           let row = null;
           this.calculated.minimum = null;
 
-          for (i = 1; i < this.data.length; i++)
+          for (i = 1; i < this.calculated.data.length; i++)
           {
-            row = this.data[i];
-            for (j = 1; j < row.length; j++)
+            row = this.calculated.data[i];
+            if ((row[0] >= this.calculated.start) && (row[0] <= this.calculated.end))
             {  
-              if (this.calculated.minimum === null)
-              {
-                this.calculated.minimum = row[j];
-              }        
-              else
-              {
-                this.calculated.minimum = Math.min(this.calculated.minimum, row[j]);
+              for (j = 1; j < row.length; j++)
+              {  
+                if (this.calculated.minimum === null)
+                {
+                  this.calculated.minimum = row[j];
+                }        
+                else
+                {
+                  this.calculated.minimum = Math.min(this.calculated.minimum, row[j]);
+                }
               }
-            }
+            }  
           }
         }  
         if (this.axisl_maximum != 'a')
@@ -326,25 +424,36 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
           let row = null;
           this.calculated.maximum = null;
 
-          for (i = 1; i < this.data.length; i++)
+          for (i = 1; i < this.calculated.data.length; i++)
           {
-            row = this.data[i];
-            for (j = 1; j < row.length; j++)
-            {  
-              if (this.calculated.maximum === null)
-              {
-                this.calculated.maximum = row[j];
-              }        
-              else
-              {
-                this.calculated.maximum = Math.max(this.calculated.maximum, row[j]);
+            row = this.calculated.data[i];
+            if ((row[0] >= this.calculated.start) && (row[0] <= this.calculated.end))
+            {
+              for (j = 1; j < row.length; j++)
+              {  
+                if (this.calculated.maximum === null)
+                {
+                  this.calculated.maximum = row[j];
+                }        
+                else
+                {
+                  this.calculated.maximum = Math.max(this.calculated.maximum, row[j]);
+                }
               }
-            }
+            }  
           }
         }          
 
+        if (this.calculated.maximum < this.calculated.minimum)
+        {
+          let temp = this.calculated.maximum;
+          this.calculated.maximum = this.calculated.minimum;
+          this.calculated.minimum = temp;
+        }  
+        
         // test maximum tick label length with 100 labels
         
+        this.log("test size of labels left axis");
         let Y_range_per_tick = this.find_nice_tick_range((this.calculated.maximum - this.calculated.minimum) / 100);
         
         let minimum_tick = Math.floor(this.calculated.minimum / Y_range_per_tick) * Y_range_per_tick;
@@ -365,7 +474,6 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
           precision = factorstr.length;
         }
 
-        let y_pixels_between_ticks = (440 - 75) / (y_ticks.length - 1);
         this.calculated.max_width_axisl_tick_labels = 0;
         this.calculated.max_height_axisl_tick_labels = 0;
         
@@ -410,6 +518,7 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
         let max_legend_width = this.chart_width - (this.chart_right_inside_margin + this.calculated.legend_left_margin);
 
         // draw legend box
+        this.log("draw legend box");
         let top_legend_box = this.calculated.ypos_bottom_title + this.legend_vertical_margin;
         this.svg_legend_rect = this.svg.add_rect(this.calculated.legend_left_margin, 
                                                  top_legend_box,
@@ -423,12 +532,12 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
         // draw serie labels to get their actual height
         let serielabels = [];
         let max_label_height = 0;
-        for (i = 1; i < this.data[0].length; i++)
+        for (i = 1; i < this.calculated.data[0].length; i++)
         {
           let svg_serielabel = this.svg.add_text(50*i,
                                                  100,
                                                  'start',
-                                                 this.data[0][i],
+                                                 this.calculated.data[0][i],
                                                  this.legend_font_color,
                                                  this.legend_font_size,
                                                  this.legend_font);
@@ -566,6 +675,7 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
 
         // calculate the y pos of the bottom axis
         
+        this.log("calculate the y pos of the bottom axis");
         // write out a label to measure it's height
         let temp_label = this.svg.add_text(0,
                                            20,
@@ -576,7 +686,7 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
                                            this.axisb_tick_labels_font);
       
         let bbox = temp_label.getBBox();
-        let height_axisb_tick_labels = bbox.height;
+        this.calculated.max_height_axisb_tick_labels = bbox.height;
         temp_label.remove();
         
         let bottom_tick_to_center_of_axis = this.axisb_thickness / 2;
@@ -589,7 +699,7 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
           bottom_tick_to_center_of_axis = Math.max(this.axisb_ticks_length / 2, this.axisb_thickness / 2);          
         }
 
-        this.calculated.ypos_axisb = Math.round(this.calculated.ypos_top_axisb_title - (this.axisb_tick_labels_bottom_margin + height_axisb_tick_labels + this.axisb_ticks_bottom_margin + bottom_tick_to_center_of_axis));
+        this.calculated.ypos_axisb = Math.round(this.calculated.ypos_top_axisb_title - (this.axisb_tick_labels_bottom_margin + this.calculated.max_height_axisb_tick_labels + this.axisb_ticks_bottom_margin + bottom_tick_to_center_of_axis));
         this.calculated.right_axisb = this.chart_width - this.chart_right_inside_margin;
         
         if (this.legend_position == 'top')
@@ -610,7 +720,9 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
                           this.area_bg_color,
                           1,
                           this.area_bg_color);  
-                                                 
+
+        this.log("draw axis's");                  
+        
         // draw bottom axis
         this.svg_bottom_axis = this.svg.add_line(this.calculated.axisl_xpos, 
                                                  this.calculated.ypos_axisb,
@@ -626,10 +738,31 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
                                                this.calculated.ypos_axisb,
                                                this.axisl_color,
                                                this.axisl_thickness);
-                                               
-     
-        max_nr_of_ticks = Math.floor((this.calculated.ypos_axisb - this.calculated.top_axisl) / this.calculated.max_height_axisl_tick_labels) - 1;
+        
+        // reposition axis labels
+        if ((this.axisl_title_text != "") && (this.axisl_title_position == 'middle'))
+        {
+          //let xpos = this.svg_axisl_title.getAttribute('x');
+          let ypos = Math.round((this.calculated.ypos_axisb + this.calculated.top_axisl) / 2);
+          //this.svg_axisl_title.setAttribute('transform', '');
+          this.svg_axisl_title.setAttribute('y', ypos);
+          this.svg_axisl_title.setAttribute('transform', 'rotate(270, ' + this.calculated.xpos_right_axisl_title + ',' + ypos + ')');
+        }
+        if ((this.axisb_title_text != "") && (this.axisb_title_position == 'middle'))
+        {
+          let xpos = Math.round((this.calculated.right_axisb + this.calculated.axisl_xpos) / 2);
+          this.log("xpos bottom axis title: " + xpos);
+          this.svg_axisb_title.setAttribute('x', xpos);
+        }      
+        
+
+        
+        this.log("calculate ticks left axis");  
+        this.log("this.calculated.ypos_axisb: " + this.calculated.ypos_axisb);
+        this.log("this.calculated.top_axisl: " + this.calculated.top_axisl);        
+        max_nr_of_ticks = Math.max(1, Math.floor((this.calculated.ypos_axisb - this.calculated.top_axisl) / this.calculated.max_height_axisl_tick_labels) - 1);
         min_y_range_per_tick = (this.calculated.maximum - this.calculated.minimum) / max_nr_of_ticks;
+        this.log("min_y_range_per_tick: " + min_y_range_per_tick);
         
         if (this.axisl_ticks_interval == 'a')
         {  
@@ -639,6 +772,7 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
         {  
           Y_range_per_tick = this.axisl_ticks_interval;
         }
+        this.log("Y_range_per_tick: " + Y_range_per_tick);
         
         minimum_tick = Math.floor(this.calculated.minimum / Y_range_per_tick) * Y_range_per_tick;
         y_ticks = [];
@@ -665,7 +799,8 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
         let count_ticks = 0;
         let ypos_bottom_support = -2;
         
-        y_pixels_between_ticks = (this.calculated.ypos_axisb - this.calculated.top_axisl) / (y_ticks.length - 1);
+        let y_pixels_between_ticks = (this.calculated.ypos_axisb - this.calculated.top_axisl) / (y_ticks.length - 1);
+        this.log("draw labels and ticks of left axis");
         for (i = 0; i < y_ticks.length; i++)
         {
           let x_pos_correction = this.calculated.max_width_axisl_tick_labels;
@@ -751,104 +886,315 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
         }        
         
 
-        this.calculated.max_width_axisb_tick_labels = 0;
-        this.calculated.max_height_axisb_tick_labels = 0;
+   //     this.calculated.max_width_axisb_tick_labels = 0;
+   //     this.calculated.max_height_axisb_tick_labels = 0;
         
-        for (i = 1; i < this.data.length; i++)
+// wrong. write 100 test labels instead        
+ //       for (i = 1; i < this.calculated.data.length; i++)
+ //       {
+ //         // write out the labels to measure their length
+ //         let temp_label = this.svg.add_text(0,
+ //                                            20,
+//                                             'start',
+//                                             this.calculated.data[i][0],
+//                                             this.chart_background_color,
+//                                             this.axisb_tick_labels_font_size,
+//                                             this.axisb_tick_labels_font);
+//          
+ //         let bbox = temp_label.getBBox();
+//          this.calculated.max_width_axisb_tick_labels = Math.max(this.calculated.max_width_axisb_tick_labels, bbox.width);
+ //         this.calculated.max_height_axisb_tick_labels = Math.max(this.calculated.max_height_axisb_tick_labels, bbox.height);
+//          temp_label.remove();
+ //       }
+
+ 
+ 
+ 
+ 
+        this.log("calculate ticks bottom axis");
+        let X_range_per_tick = this.axisb_ticks_interval;
+        if (this.axisb_data_type == 'datetime')
         {
-          // write out the labels to measure their length
-          let temp_label = this.svg.add_text(0,
-                                             20,
-                                             'start',
-                                             this.data[i][0],
-                                             this.chart_background_color,
-                                             this.axisb_tick_labels_font_size,
-                                             this.axisb_tick_labels_font);
+          moment.locale(this.axisb_tick_labels_locale);
+
+               // write out the labels to measure their length
+              let label_text = moment(this.calculated.start).format(this.axisb_tick_labels_format);  
+              let temp_label = this.svg.add_text(0,
+                                                 20,
+                                                 'start',
+                                                 label_text,
+                                                 this.chart_background_color,
+                                                 this.axisb_tick_labels_font_size,
+                                                 this.axisb_tick_labels_font);
           
-          let bbox = temp_label.getBBox();
-          this.calculated.max_width_axisb_tick_labels = Math.max(this.calculated.max_width_axisb_tick_labels, bbox.width);
-          this.calculated.max_height_axisb_tick_labels = Math.max(this.calculated.max_height_axisb_tick_labels, bbox.height);
-          temp_label.remove();
-        }
+              let bbox1 = temp_label.getBBox();
+                
+              label_text = moment(this.calculated.end).format(this.axisb_tick_labels_format);  
+              temp_label = this.svg.add_text(0,
+                                                 20,
+                                                 'start',
+                                                 label_text,
+                                                 this.chart_background_color,
+                                                 this.axisb_tick_labels_font_size,
+                                                 this.axisb_tick_labels_font);
+          
+              let bbox2 = temp_label.getBBox();
+              this.calculated.max_width_axisb_tick_labels = Math.max(bbox1.width, bbox2.width);
+              
+              temp_label.remove(); 
 
-        if (this.axisb_minimum != 'a')
-        {
-          this.calculated.start = this.axisb_minimum;
+              let max_nr_of_ticks = Math.max(1, Math.floor((this.calculated.right_axisb - this.calculated.axisl_xpos) / this.calculated.max_width_axisb_tick_labels) - 1); 
+              let min_x_range_per_tick = (this.calculated.end - this.calculated.start) / max_nr_of_ticks;
+           
+              this.calculated.axisb_ticks_interval = this.axisb_ticks_interval;
+              this.calculated.axisb_ticks_units = this.axisb_ticks_units;
+              if (this.axisb_ticks_interval == 'a')
+              {
+                X_range_per_tick = this.find_datetime_tick_range(min_x_range_per_tick);
+                let range_parts = X_range_per_tick.split(";");
+                this.calculated.axisb_ticks_interval = range_parts[0];
+                this.calculated.axisb_ticks_units = range_parts[1];
+              }  
+
+              if (this.calculated.axisb_ticks_units == 'ms')
+              {  
+                minimum_tick = Math.floor(this.calculated.start / this.calculated.axisb_ticks_interval) * this.calculated.axisb_ticks_interval;
+              }
+              if (this.calculated.axisb_ticks_units == 's')
+              {  
+                minimum_tick = Math.floor(this.calculated.start / (this.calculated.axisb_ticks_interval * 1000)) * this.calculated.axisb_ticks_interval * 1000;
+              }                            
+              if (this.calculated.axisb_ticks_units == 'm')
+              {  
+                minimum_tick = Math.floor(this.calculated.start / (this.calculated.axisb_ticks_interval * 60000)) * this.calculated.axisb_ticks_interval * 60000;
+              }
+              if (this.calculated.axisb_ticks_units == 'h')
+              {  
+                minimum_tick = Math.floor(this.calculated.start / (this.calculated.axisb_ticks_interval * 3600000)) * this.calculated.axisb_ticks_interval * 3600000;
+              }
+              if (this.calculated.axisb_ticks_units == 'd')
+              {  
+                minimum_tick = Math.floor(this.calculated.start / (this.calculated.axisb_ticks_interval * 86400000)) * this.calculated.axisb_ticks_interval * 86400000;
+              }
+              if (this.calculated.axisb_ticks_units == 'w')
+              {  
+                let mnt = moment(this.calculated.start);
+                mnt.millisecond(0);
+                mnt.second(0);
+                mnt.minute(0);
+                mnt.hour(0);
+                mnt.weekday(0);
+                minimum_tick = Number(mnt.format('x'));
+              }
+              if (this.calculated.axisb_ticks_units == 'M')
+              {  
+                let mnt = moment(this.calculated.start);
+                mnt.millisecond(0);
+                mnt.second(0);
+                mnt.minute(0);
+                mnt.hour(0);
+                mnt.date(1);
+                minimum_tick = Number(mnt.format('x'));
+              }              
+              if (this.calculated.axisb_ticks_units == 'y')
+              {  
+                let mnt = moment(this.calculated.start);
+                mnt.millisecond(0);
+                mnt.second(0);
+                mnt.minute(0);
+                mnt.hour(0);
+                mnt.date(1);
+                mnt.month(0);
+                mnt.year(Math.floor(mnt.year() / this.calculated.axisb_ticks_interval) * this.calculated.axisb_ticks_interval);
+                minimum_tick = Number(mnt.format('x'));
+              }    
+
+              x_ticks = [];
+              x_ticks[0] = minimum_tick;
+              tick = minimum_tick;
+              while (tick < this.calculated.end)
+              {
+                let mnt = moment(tick);
+                mnt.add(this.calculated.axisb_ticks_interval, this.calculated.axisb_ticks_units);
+                tick = Number(mnt.format('x'));
+
+                x_ticks.push(tick);
+              }
+              maximum_tick = tick;
+
+              X_range_per_tick = (maximum_tick - minimum_tick) / (x_ticks.length - 1);
+              
+              // if minimum tick much smaller then start value then increase minimum tick
+              if ((minimum_tick + 0.45 * X_range_per_tick) < this.calculated.start)
+              {
+                x_ticks.shift();
+              }                
+              
+              // if maximum tick is much larger then end then decrease maximum
+              if ((maximum_tick - 0.45 * X_range_per_tick) > this.calculated.end)
+              {
+                x_ticks.pop();
+              }               
+              minimum_tick = x_ticks[0];
+              maximum_tick = x_ticks[x_ticks.length - 1];
+              X_range_per_tick = (maximum_tick - minimum_tick) / (x_ticks.length - 1);             
         }
         else
-        {          
-          this.calculated.start = null;
-          for (i = 1; i < this.data.length; i++)
-          {
-            let row = this.data[i];
-            if (this.calculated.start === null)
+        {  
+ 
+          
+          if (this.axisb_ticks_interval == 'a')
+          {  
+            // test maximum tick label length with 100 labels
+            
+            X_range_per_tick = this.find_nice_tick_range((this.calculated.end - this.calculated.start) / 100);
+            
+            minimum_tick = Math.floor(this.calculated.start / X_range_per_tick) * X_range_per_tick;
+            let x_ticks = [];
+            x_ticks[0] = minimum_tick;
+            var tick = minimum_tick;
+            while (tick < this.calculated.end)
             {
-              this.calculated.start = row[0];
-            }        
+              tick = tick + X_range_per_tick;
+              x_ticks.push(tick);
+            }
+            precision = 0;
+            // calculate precision 
+            if (Math.abs(X_range_per_tick) < 1)
+            {
+              let factor = Math.round(1 / Math.abs(X_range_per_tick)) - 1; // 0.01 -> 99
+              let factorstr = "" + factor;
+              precision = factorstr.length;
+            }
+
+            this.calculated.max_width_axisb_tick_labels = 0;
+            this.calculated.max_height_axisb_tick_labels = 0;
+            
+            for (i = 0; i < x_ticks.length; i++)
+            {
+              // write out the labels to measure their length
+              let label_text = x_ticks[i].toFixed(precision);  
+              let temp_label = this.svg.add_text(0,
+                                                 20,
+                                                 'start',
+                                                 label_text,
+                                                 this.chart_background_color,
+                                                 this.axisb_tick_labels_font_size,
+                                                 this.axisb_tick_labels_font);
+          
+              let bbox = temp_label.getBBox();
+              this.calculated.max_width_axisb_tick_labels = Math.max(this.calculated.max_width_axisb_tick_labels, bbox.width);
+              this.calculated.max_height_axisb_tick_labels = Math.max(this.calculated.max_height_axisb_tick_labels, bbox.height);
+              temp_label.remove();
+            } 
+            
+   
+            // now test with optimistic small tick range
+            max_nr_of_ticks = Math.floor((this.calculated.right_axisb - this.calculated.axisl_xpos) / this.calculated.max_width_axisb_tick_labels) - 1;
+            min_x_range_per_tick = (this.calculated.end - this.calculated.start) / max_nr_of_ticks;
+            
+            X_test_range_per_tick = this.find_small_tick_range(min_x_range_per_tick);
+                      
+            minimum_tick = Math.floor(this.calculated.start / X_test_range_per_tick) * X_test_range_per_tick;
+            x_ticks = [];
+            x_ticks[0] = minimum_tick;
+            var tick = minimum_tick;
+            while (tick < this.calculated.end)
+            {
+              tick = tick + X_test_range_per_tick;
+              x_ticks.push(tick);
+            }
+            precision = 0;
+            // calculate precision 
+            if (Math.abs(X_test_range_per_tick) < 1)
+            {
+              let factor = Math.round(1 / Math.abs(X_test_range_per_tick)) - 1; // 0.01 -> 99
+              let factorstr = "" + factor;
+              precision = factorstr.length;
+            }
+
+            let max_width_axisb_tick_labels = 0;
+
+            
+            for (i = 0; i < x_ticks.length; i++)
+            {
+              // write out the labels to measure their length
+              let label_text = x_ticks[i].toFixed(precision);
+              let temp_label = this.svg.add_text(0,
+                                                 20,
+                                                 'start',
+                                                 label_text,
+                                                 this.chart_background_color,
+                                                 this.axisb_tick_labels_font_size,
+                                                 this.axisb_tick_labels_font);
+          
+              let bbox = temp_label.getBBox();
+              max_width_axisb_tick_labels = Math.max(max_width_axisb_tick_labels, bbox.width);
+              temp_label.remove();
+            } 
+   
+            let nr_of_ticks = Math.ceil((this.calculated.end - this.calculated.start) / X_test_range_per_tick);
+            // Does it fit?
+            if ((nr_of_ticks * (max_width_axisb_tick_labels + 3)) < (this.calculated.right_axisb - this.calculated.axisl_xpos)) // minimum 3 pixels between labels
+            {
+              X_range_per_tick = X_test_range_per_tick;
+              this.calculated.max_width_axisb_tick_labels = max_width_axisb_tick_labels;
+
+            }            
             else
             {
-        //TODO adopt for dates
-              this.calculated.start = Math.min(this.calculated.start, row[0]);
-            }
+              max_nr_of_ticks = Math.floor((this.calculated.right_axisb - this.calculated.axisl_xpos) / this.calculated.max_width_axisb_tick_labels) - 1;
+              min_x_range_per_tick = (this.calculated.end - this.calculated.start) / max_nr_of_ticks;
+              X_range_per_tick = this.find_nice_tick_range(min_x_range_per_tick);
+
+            }            
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+
+
+          
+
           }
-        }  
-
-        if (this.axisb_maximum != 'a')
-        {
-          this.calculated.end = this.axisb_maximum;
-        }
-        else
-        {        
-          this.calculated.end = null;    
-          for (i = 1; i < this.data.length; i++)
+        
+          minimum_tick = Math.floor(this.calculated.start / X_range_per_tick) * X_range_per_tick;
+          x_ticks = [];
+          x_ticks[0] = minimum_tick;
+          tick = minimum_tick;
+          while (tick < this.calculated.end)
           {
-            let row = this.data[i];
-            if (this.calculated.end === null)
-            {
-              this.calculated.end = row[0];
-            }        
-            else
-            {
-        //TODO adopt for dates
-              this.calculated.end = Math.max(this.calculated.end, row[0]);          
-            }
-          }  
+            tick = tick + X_range_per_tick;
+            x_ticks.push(tick);
+          }
+          maximum_tick = tick;
+                
+          if (Math.abs(X_range_per_tick) < 1)
+          {
+            let factor = Math.round(1 / Math.abs(X_range_per_tick)) - 1; // 0.01 -> 99
+            let factorstr = "" + factor;
+            precision = factorstr.length;
+          }
+          else
+          {
+            precision = 0;
+          }
         }
-
-        max_nr_of_ticks = Math.floor((this.calculated.right_axisb - this.calculated.axisl_xpos) / this.calculated.max_width_axisb_tick_labels) - 1;
-        min_x_range_per_tick = (this.calculated.end - this.calculated.start) / max_nr_of_ticks;
-        
-        if (this.axisb_ticks_interval == 'a')
-        {  
-          X_range_per_tick = this.find_nice_tick_range(min_x_range_per_tick);
-        }
-        else
-        {  
-          X_range_per_tick = this.axisb_ticks_interval;
-        }
-        
-        minimum_tick = Math.floor(this.calculated.start / X_range_per_tick) * X_range_per_tick;
-        x_ticks = [];
-        x_ticks[0] = minimum_tick;
-        tick = minimum_tick;
-        while (tick < this.calculated.end)
-        {
-          tick = tick + X_range_per_tick;
-          x_ticks.push(tick);
-        }
-        maximum_tick = tick;
-        
-        if (Math.abs(X_range_per_tick) < 1)
-        {
-          let factor = Math.round(1 / Math.abs(X_range_per_tick)) - 1; // 0.01 -> 99
-          let factorstr = "" + factor;
-          precision = factorstr.length;
-        }
-        else
-        {
-          precision = 0;
-        }
-        
         x_pixels_between_ticks = (this.calculated.right_axisb - this.calculated.axisl_xpos) / x_ticks.length;
         for (i = 0; i < x_ticks.length; i++)
         {
@@ -864,23 +1210,31 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
             tick_start_pos = this.calculated.ypos_axisb;
             tick_end_pos = this.calculated.ypos_axisb + (this.axisb_ticks_length + Math.floor(this.axisb_thickness / 2));
           }  
-          
-          this.svg.add_line(this.calculated.axisl_xpos + Math.round(x_pixels_between_ticks / 2) + i * x_pixels_between_ticks,
+          let xpos_tick = this.calculated.axisl_xpos + Math.round(x_pixels_between_ticks / 2) + i * x_pixels_between_ticks;
+          //let xpos_tick = this.calculated.axisl_xpos + i * x_pixels_between_ticks;
+          this.svg.add_line(xpos_tick,
                             tick_start_pos,
-                            this.calculated.axisl_xpos + Math.round(x_pixels_between_ticks / 2) + i * x_pixels_between_ticks,
+                            xpos_tick,
                             tick_end_pos,
                             this.axisb_ticks_color,
                             this.axisb_ticks_thickness);
                             
-          this.svg.add_text(this.calculated.axisl_xpos + Math.round(x_pixels_between_ticks / 2) + i * x_pixels_between_ticks, 
+          let label_text = x_ticks[i].toFixed(precision);
+          if (this.axisb_data_type == 'datetime')
+          {
+            label_text = moment(x_ticks[i]).format(this.axisb_tick_labels_format);               
+          }
+          this.svg.add_text(xpos_tick, 
                             tick_end_pos + this.axisb_ticks_bottom_margin + this.calculated.max_height_axisb_tick_labels,
                             this.axisb_tick_labels_position,
-                            x_ticks[i].toFixed(precision),
+                            label_text,
                             this.axisb_tick_labels_font_color,
                             this.axisb_tick_labels_font_size,
                             this.axisb_tick_labels_font);
         }
 
+        
+        this.log("draw series lines");
         let x_pixel_pervalue = x_pixels_between_ticks / X_range_per_tick; 
         let y_pixel_pervalue = -1 * (y_pixels_between_ticks / Y_range_per_tick); 
         
@@ -888,22 +1242,26 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
         {
           let points_str = "";
           let points = [];
-          for (i = 1; i < this.data.length; i++)
+          for (i = 1; i < this.calculated.data.length; i++)
           {
-            row = this.data[i];
+            row = this.calculated.data[i];
             let newx = Math.round(this.graph_pos(x_ticks[0], row[0], this.calculated.axisl_xpos + Math.round(x_pixels_between_ticks / 2), x_pixel_pervalue));
             let newy = Math.round(this.graph_pos(y_ticks[0], row[j], this.calculated.ypos_axisb, y_pixel_pervalue));
-            let newpoint = {x: newx, y: newy};
-            points.push(newpoint);
-            points_str = points_str + " " + newx + "," + newy;
-            // add point?
-            if (this.series_point_size > 0)
-            {
-              this.svg.add_point(newx, 
-                                 newy,
-                                 this.series_point_size,
-                                 series_colors[j-1]);
-            }
+
+            if ((newx >= this.calculated.axisl_xpos) && (newx <= this.calculated.right_axisb) && (newy <= this.calculated.ypos_axisb) && (newy >= this.calculated.top_axisl))
+            {  
+              let newpoint = {x: newx, y: newy};
+              points.push(newpoint);
+              points_str = points_str + " " + newx + "," + newy;
+              // add point?
+              if (this.series_point_size > 0)
+              {
+                this.svg.add_point(newx, 
+                                   newy,
+                                   this.series_point_size,
+                                   series_colors[j-1]);
+              }
+            }  
           }
 
           if (this.series_line_smoothing == 0)
@@ -991,8 +1349,67 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
     return command;
   }
   
-  chart.find_nice_tick_range = function (min_range_per_tick)
+  chart.find_datetime_tick_range = function(min_range_per_tick)
   {
+    if (min_range_per_tick < 1000)
+    {
+      return this.find_nice_tick_range(min_range_per_tick) + ";ms";
+    }        
+    let min_range_seconds = min_range_per_tick / 1000;    
+    if (min_range_seconds < 50)
+    {
+      return this.find_nice_tick_range(min_range_seconds) + ";s";
+    }        
+    let min_range_minutes = min_range_seconds / 60;    
+    if (min_range_minutes < 50)
+    {
+      return this.find_nice_tick_range(min_range_minutes) + ";m";
+    }        
+    let min_range_hours = min_range_minutes / 60;    
+    if (min_range_hours < 1)
+    {
+      return "1;h";
+    }        
+    if (min_range_hours < 2)
+    {
+      return "2;h";
+    }        
+    if (min_range_hours < 4)
+    {
+      return "4;h";
+    }
+    if (min_range_hours < 12)
+    {
+      return "12;h";
+    }
+    let min_range_days = min_range_hours / 24;
+    if (min_range_days < 1)
+    {
+      return "1;d";
+    }
+    let min_range_weeks = min_range_days / 7;    
+    if (min_range_weeks < 3)
+    {
+      return this.find_nice_tick_range(min_range_weeks) + ";w";
+    }
+    let min_range_months = min_range_days / 30.5;
+    if (min_range_months < 1)
+    {
+      return "1;M";
+    }
+    if (min_range_months < 2)
+    {
+      return "2;M";
+    }
+    if (min_range_months < 6)
+    {
+      return "6;M";
+    }
+    return this.find_nice_tick_range(min_range_days / 365.25) + ";y";
+  }
+  
+  chart.find_nice_tick_range = function(min_range_per_tick)
+  {    
     let testval = Math.abs(min_range_per_tick);
     
     // multiply or divide by 10 until value is between 1 and 10
@@ -1028,6 +1445,51 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
     return 10 * factor;
   }
   
+  chart.find_small_tick_range = function(min_range_per_tick)
+  {
+    let testval = Math.abs(min_range_per_tick);
+    
+    // multiply or divide by 10 until value is between 1 and 10
+    while (testval < 1 || testval >= 10.001)
+    {
+      if (testval < 1)
+      {
+        testval = testval * 10;
+      }
+      else
+      {
+        testval = testval / 10;
+      }
+    }
+    let factor = min_range_per_tick / testval;
+    // add precision
+    if (factor > 1)
+    {
+      factor = Math.round(factor);
+    }
+    else
+    {
+      factor = 1 / Math.round(1 / factor);
+    }
+    if (testval <= 2)   
+    {
+      return factor;
+    }
+    if (testval <= 5)   
+    {
+      return 2 * factor;
+    }    
+    return 5 * factor;
+  }
+  
+  chart.log = function(debugtext)
+  {
+    if (chart.debug)
+    {
+      console.log(debugtext);
+    }
+  }  
+  
   if (inputfile)
   {
     $.getJSON(inputfile, function(data)
@@ -1039,6 +1501,6 @@ function createMultiseriesLineChart(svg, inputfile = null, callback = null)
     return null;
   }
   
-  return chart; 
+  return chart;  
 }  
 

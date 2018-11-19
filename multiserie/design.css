@@ -141,3 +141,38 @@ html, body
   margin-left: 8px;  
   margin-bottom: 8px;
 }  
+
+#axisb_minimum_label, #axisb_maximum_label
+{
+  
+  position: relative;
+  z-index: 100;
+  width: 190px;
+  background-color: #cccccc;
+}
+
+#axisb_minimum_date, #datetimepicker_start, #axisb_maximum_date, #datetimepicker_end
+{
+  width: 1px;
+  height: 1px;
+  padding: 0px;
+}
+
+#datetimepicker_start:focus, #axisb_minimum_date:focus, #datetimepicker_end:focus, #axisb_maximum_date:focus
+{
+  outline: none;
+  box-shadow: none;
+  border-color: #cccccc;
+}
+
+#axisb_minimum_date, #axisb_maximum_date
+{
+  position: relative;
+}
+  
+#axisb_minimum, #axisb_maximum
+{
+  position: relative; 
+  width: 140px;
+  text-align: right;
+}    

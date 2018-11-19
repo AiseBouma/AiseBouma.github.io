@@ -1,11 +1,11 @@
 <html>
   <head>
-    <link rel="stylesheet" type="text/css" href="design.css">
+    
     <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="bootstrap-datetimepicker.min.css">
   </head>
   <script src="../jquery-3.3.1.min.js"></script>
-  <script src="../papaparse.min.js"></script>
+  
   <script src="../moment-with-locales.js"></script>
   <script src="../lukisan.js"></script>
 
@@ -62,62 +62,23 @@
     $("#axisb_tick_label_format_row").toggle();
     $("#axisb_tick_label_locale_row").toggle();
     
-    $('#datetimepicker_start').datetimepicker(
-    {
-      format: 'DD-MM-YYYY HH:mm:ss',
-      showClose: true,
-      showClear: true
-    }).on('dp.hide', function(e)
-    {
-      if ($('#datetimepicker_start').val())
-      {
-        $("#axisb_minimum").val($('#datetimepicker_start').val());
-        chart2.set_attribute('axisb_minimum', Number(e.date.format("x")));
-      }
-      else
-      {
-        $("#axisb_minimum").val('a');
-        chart2.set_attribute('axisb_minimum', 'a');
-      }      
-      
-    });
+    
 
-    $('#datetimepicker_end').datetimepicker(
-    {
-      format: 'DD-MM-YYYY HH:mm:ss',
-      showClose: true,
-      showClear: true
-    }).on('dp.hide', function(e)
-    {
-      if ($('#datetimepicker_end').val())
-      {
-        $("#axisb_maximum").val($('#datetimepicker_end').val());
-        chart2.set_attribute('axisb_maximum', Number(e.date.format("x")));
-      }
-      else
-      {
-        $("#axisb_maximum").val('a');
-        chart2.set_attribute('axisb_maximum', 'a');
-      }      
-      
-    });
     
-    $("#axisb_minimum").focus(function()
+    $(function () {
+                $('#datetimepicker1').datetimepicker({
+                    format: 'DD-MM-YYYY HH:mm:ss'
+                });
+            });
+    $("#axisb_maximum").focus(function()
     {
       if (chart2.axisb_data_type == 'datetime')
       {
-        $("#datetimepicker_start").data("DateTimePicker").show();
+        $("#datetimepicker1").data("DateTimePicker").show();
       } 
     });     
     
-     $("#axisb_maximum").focus(function()
-    {
-      if (chart2.axisb_data_type == 'datetime')
-      {
-        $("#datetimepicker_end").data("DateTimePicker").show();
-      } 
-    });     
-       
+    
     
     
     
@@ -140,19 +101,7 @@
 			});
     });
     
-    $("#upload_settings").change(function()
-    {    
-      let file = document.getElementById('upload_settings').files[0];
-      let reader = new FileReader();
-      reader.addEventListener("loadend", function()
-      {
-        let uploaded_chart_object = (jQuery.parseJSON(reader.result));
-        chart2 = Object.assign(chart2, uploaded_chart_object);
-        update_web_interface();
-        chart2.redraw();
-      });
-      reader.readAsBinaryString(file);
-    });
+    
     
     $.each(font_options, function(val, text)
     {
@@ -167,7 +116,7 @@
     let locales = moment.locales();
     $.each(locales, function(val, text)
     {
-      $('#axisb_tick_labels_locale').append(new Option(text,text));
+      $('#axisb_tick_labels_locale').append(new Option(text,val));
     });
     
     for (i = 0; i < 20; i++)
@@ -523,10 +472,7 @@
       }
       else
       {
-        if (chart2.axisb_data_type != 'datetime')
-        {
-          chart2.set_attribute('axisb_maximum', Number(this.value));
-        }  
+        chart2.set_attribute('axisb_maximum', Number(this.value));
       }  
     });
 
@@ -654,21 +600,9 @@
     });
 
     chart2 = createMultiseriesLineChart(document.getElementById('chart2'));
-    chart2.debug = true;
     update_web_interface();
     //chart2.redraw();
-    Papa.parse('gii.csv', 
-    {
-      download: true,
-      header: false,
-		  dynamicTyping: true,
-		  skipEmptyLines: true,
-			complete: function(results)
-      {
-        chart2.set_attribute('data', results.data);
-        show_data_summary(results.data);
-      }
-		});
+    
     //chart2.set_attribute('data', this.value);
     // createMultiseriesLineChart(document.getElementById('chart2'),
     //                           'chart.json',    
@@ -681,6 +615,49 @@
  
   });
 
+  function calendar_open(selectedDates, dateStr, instance)
+  {
+    console.log("cal open");
+    console.log(selectedDates);
+    click_day(instance, moment())
+  }
+  
+  function click_day(instance, moment)
+  {
+    let day = moment.date();
+console.log(day);    
+    let jq_days = $(instance.days);
+console.log(   jq_days); 
+    let matching_days = jq_days.children().filter(function() { console.log($(this).text()); return ($(this).text() === ("" + day)) });
+console.log("match:");
+console.log(matching_days);
+    $(matching_days[0]).mousedown();
+    $(matching_days[0]).on("click mousedown mouseup focus blur keydown change",function(e){
+     console.log(e);
+});    
+    $(".today").mousedown();
+  }
+  
+  function set_calendar_date(selectedDates, dateStr, instance)
+  {
+    if (selectedDates)
+    {
+      let prevdate = moment(selectedDates[0]);
+      prevdate.year(instance.currentYear);
+      prevdate.month(instance.currentMonth);
+      instance.setDate(prevdate.toDate(), false);
+    }
+  }
+  
+  function start_calendar_ok()
+  {
+    let start_date = start_calendar.selectedDates[0];
+    console.log(start_calendar.selectedDates);
+    chart2.set_attribute('axisb_minimum', start_date.getTime());
+    $("#axisb_minimum").val(moment(start_date).format("DD-MM-YYYY HH:mm:ss"));
+    start_calendar.close();
+  }
+  
   function toggle_arrow(arrow_id)
   {
     if ($("#" + arrow_id).html().charCodeAt(0) == 9660)
@@ -781,36 +758,8 @@
     $("#axisl_tick_labels_left_margin").val(chart2.axisl_tick_labels_left_margin);    
     $("#axisb_color").val(chart2.axisb_color);
     $("#axisb_thickness").val(chart2.axisb_thickness);
-    if ((chart2.axisb_data_type == 'datetime') && (chart2.axisb_minimum != "a"))
-    {
-      $("#axisb_minimum").val(moment(chart2.axisb_minimum).format('DD-MM-YYYY HH:mm:ss'));
-      $("#datetimepicker_start").data("DateTimePicker").date(moment(chart2.axisb_minimum));
-    }
-    else
-    {
-      $("#axisb_minimum").val(chart2.axisb_minimum);
-    }
-    if ((chart2.axisb_data_type == 'datetime') && (chart2.axisb_maximum != "a"))
-    {
-      $("#axisb_maximum").val(moment(chart2.axisb_maximum).format('DD-MM-YYYY HH:mm:ss'));
-      $("#datetimepicker_end").data("DateTimePicker").date(moment(chart2.axisb_maximum));
-    }
-    else
-    {
-      $("#axisb_maximum").val(chart2.axisb_maximum);
-    }  
-    if (chart2.axisb_data_type == 'datetime')
-    {
-      $("#axisb_ticks_units_row").toggle(true);
-      $("#axisb_tick_label_format_row").toggle(true);
-      $("#axisb_tick_label_locale_row").toggle(true);
-    }
-    else
-    {
-      $("#axisb_ticks_units_row").toggle(false);
-      $("#axisb_tick_label_format_row").toggle(false);
-      $("#axisb_tick_label_locale_row").toggle(false);
-    }
+    $("#axisb_minimum").val(chart2.axisb_minimum);
+    $("#axisb_maximum").val(chart2.axisb_maximum);
     $("#axisb_ticks_interval").val(chart2.axisb_ticks_interval);    
     $("#axisb_ticks_color").val(chart2.axisb_ticks_color);    
     $("#axisb_ticks_thickness").val(chart2.axisb_ticks_thickness);    
@@ -862,6 +811,23 @@
   <body>
     <div id='maindiv'>
       <div id='mainleft'>
+      
+ <div class="container">
+    <div class="col-sm-6" style="height:130px;">
+        <div class="form-group">
+            <div class='input-group date' id='datetimepicker1'>
+                <input type='text' class="form-control" />
+                <span class="input-group-addon">
+                    <span class="glyphicon glyphicon-calendar">
+                    </span>
+                </span>
+            </div>
+        </div>
+    </div>
+    
+</div>
+      
+      
         <div id='title_div'>Multiserie chart settings</div>
         <div id='graphparameters'>        
           <p id='chart_settings_title' class='graphsettings_titel' onclick='$("#chart_settings").toggle();toggle_arrow("chart_settings_arrow");'>Chart<span id="chart_settings_arrow" class='arrow'>&#9660;</span></p>
@@ -1223,26 +1189,11 @@
               <div class='graphsettings_cell'>Thickness:</div><div class='graphsettings_cell'><input id='axisb_thickness' class='numeric_input' value=1></div>
             </div>
             <div class='graphsettings_row'>
-              <div class='graphsettings_cell'>
-                <span id='axisb_minimum_label'>Minimum (a = automatic):</span>
-                <div id='axisb_minimum_date' class='col-sm-6'>
-                  <input type='text' class="form-control" id='datetimepicker_start'>
-                </div>
-              </div>
-              <div class='graphsettings_cell'>
-                <input id='axisb_minimum' class='numeric_input' value='a'>
-              </div>
+              <div class='graphsettings_cell'>Minimum (a = automatic):</div><div class='graphsettings_cell'><input id='axisb_minimum_date'><input id='axisb_minimum' class='numeric_input' value='a'></div>
             </div>
             <div class='graphsettings_row'>
-              <div class='graphsettings_cell'>
-                <span id='axisb_maximum_label'>Maximum (a = automatic):</span>
-                <div id='axisb_maximum_date' class='col-sm-6'>
-                  <input type='text' class="form-control" id='datetimepicker_end'>
-                </div>
-              </div>
-              <div class='graphsettings_cell'>
-                <input id='axisb_maximum' class='numeric_input' value='a'>
-              </div>
+              <div class='graphsettings_cell'>Maximum (a = automatic):</div><div class='graphsettings_cell'><input id='axisb_maximum_date'><input id='axisb_maximum' class='numeric_input' value='a'></div>
+              
             </div>
           </div>          
   
