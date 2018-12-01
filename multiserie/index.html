@@ -34,18 +34,27 @@
       <code>
         &lt;script src="lukisan.js"&gt;&lt;/script&gt;    
       </code>
-    </pre>  
+    </pre>
+    Also add jquery and when needed moment.js (including locales).
+    <h3>Create the html element</h3>
+    <p>
+    <pre>
+      <code>
+        <svg id='chart_svg'></svg>    
+      </code>
+    </pre> 
+    </p>  
     <h3>Create the graph</h3>
     <p>
       Without loading a settings file:
     </p>
     <pre>
       <code>
-        var chart = createMultiseriesLineChart(document.getElementById('chart_div'));    
+        var chart = createMultiseriesLineChart(document.getElementById('chart_svg'));    
       </code>
     </pre> 
     <p>
-      The graph will be displayed in the HTML element <i>chart_div</i> (make sure all html elements are loaded before calling this function).
+      The graph will be displayed in the HTML element <i>chart_svg</i> (make sure all html elements are loaded before calling this function).
       And <i>chart</i> is now a javascript object, which can be used the manipulate the graph further.
     </p>    
     <p>
@@ -53,17 +62,18 @@
     </p>
     <pre>
       <code>
-        createMultiseriesLineChart(document.getElementById('chart_div'),
+        var chart;
+        createMultiseriesLineChart(document.getElementById('chart_svg'),
                                    'chart.json',    
                                    function(chart_fromfile)
                                    {
-                                     var chart = chart_fromfile;
-                                     chart.redraw();
+                                     chart = chart_fromfile;
+                                     chart.set_attribute('data', data);
                                    });    
       </code>
     </pre> 
     <p>
-      The graph will be displayed in the HTML element <i>chart_div</i> (make sure all html elements are loaded before calling this function).
+      The graph will be displayed in the HTML element <i>chart_svg</i> (make sure all html elements are loaded before calling this function).
       And <i>chart</i> is now a javascript object, which can be used the manipulate the graph further. Please note this call is asynchronous:
       any immediate maniplulation should be done in the shown function before the call to the redraw method.
     </p>    
@@ -137,9 +147,9 @@
     </p>
     <h3>Dependencies</h3>
     <p>
-      Lukisan needs:
-      * jquery
-      * moment.js (when a DateTime axis is used)
+      Lukisan needs:<br>
+      * jquery<br>
+      * moment.js (including locales; only needed when a DateTime axis is used)<br>
     </p>  
     <h3>List of attributes</h3>
     <p>
