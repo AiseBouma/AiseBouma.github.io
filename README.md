@@ -6,3 +6,4 @@ Currently the following graphs are available:
 
 * [Multiserie Line Graph](https://aisebouma.github.io/multiserie/)
 
+Add an issue if you are interested in a specific type of graph.
