@@ -69,12 +69,13 @@
     </p>    
     <h3>Loading the data</h3>
     <p>
-      The data should be an array of arrays. The first array contains the name of x values (not used in the graph), followed by the names of the series.
+      The data should be an array of arrays. The first array starts with the format of x values (in case of a DateTime axis, otherwise ignored),
+      followed by the names of the series.
       The other arrays contain an x value followed by a y value for each serie. The examples above use these data:
     </p>
     <pre>
       <code>
-        var data = [["year", "Netherlands", "Russian Federation", "Indonesia", "Morocco", "Canada"],
+        var data = [["YYYY", "Netherlands", "Russian Federation", "Indonesia", "Morocco", "Canada"],
                     [1990, 0.129883497953415, 0.411991596221924, 0.597523748874664, 0.807207465171814, 0.213974073529243],
                     [1991, 0.124339945614338, 0.416123956441879, 0.594921469688416, 0.808139443397522, 0.2092055529356],
                     [1992, 0.117460161447525, 0.420459240674973, 0.592229187488556, 0.783722460269928, 0.205279126763344],
@@ -197,10 +198,12 @@
       axisl_tick_labels_position: 'end' ('start', 'middle' or 'end')<br>
       axisl_tick_labels_left_margin: 15<br>
       axisb_color: '#000000'<br>
+      axisb_data_type: 'number' ('number' or 'datetime')<br>
       axisb_thickness: 1<br>
       axisb_minimum: 'a' ('a'= automatic)<br>
       axisb_maximum: 'a' ('a'= automatic)<br>
       axisb_ticks_interval: 'a' ('a'= automatic)<br>
+      axisb_ticks_units: 'y' ('y', 'M', 'w', 'd', 'h', 'm', 's' or 'ms'; for datetime axis only)<br>
       axisb_ticks_color: '#000000'<br>
       axisb_ticks_thickness: 1<br>
       axisb_ticks_length: 5<br>
@@ -211,6 +214,8 @@
       axisb_tick_labels_font_color: '#000000'<br>
       axisb_tick_labels_position: 'middle' ('start', 'middle' or 'end')<br>
       axisb_tick_labels_bottom_margin: 15<br>
+      axisb_tick_labels_format: '' (same as moment.js, for datetime axis only)<br>
+      axisb_tick_labels_locale: 'en' (same as moment.js, for datetime axis only)<br>
       series_colors: '#ff0000;#00ff00;#0000ff;#ffff00;#ff00ff;#00ffff;#808080;#ff8000;#008040;#b9b9ff;#804000;#ff80c0;#808000;#800080;#ff8080;#408080;#0000a0;#ffffbf;#400080;#0080ff'<br>
       series_line_thickness: 2<br>
       series_line_smoothing: 0.2 (0 = none)<br>
